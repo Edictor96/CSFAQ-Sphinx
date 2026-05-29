@@ -1,0 +1,29 @@
+{
+  "name": "faq-auth-server",
+  "version": "1.0.0",
+  "description": "Production-ready authentication API for FAQ Management Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@xenova/transformers": "^2.17.2",
+    "axios": "^1.16.1",
+    "bcryptjs": "^3.0.3",
+    "cheerio": "^1.2.0",
+    "chromadb": "^3.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.4.1",
+    "google-auth-library": "^9.14.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.6.0",
+    "puppeteer": "^25.1.0",
+    "validator": "^13.12.0"
+  }
+}
