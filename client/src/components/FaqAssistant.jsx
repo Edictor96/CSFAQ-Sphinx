@@ -31,7 +31,7 @@ export default function FaqAssistant() {
     try {
       const data = await searchFAQs(q);
       const hasSources = data.sources?.length > 0;
-      const isGeneric = data.answer?.includes("No relevant information found") || data.answer?.includes("lacks sufficient information");
+      const isGeneric = /no (relevant )?information|does not provide|lacks sufficient|couldn't find|don't have enough|couldn't find an answer/i.test(data.answer || '');
       if (hasSources && !isGeneric) {
         setMessages(prev => [...prev, { role: 'assistant', text: data.answer, sources: data.sources, confidence: data.confidence }]);
       } else {

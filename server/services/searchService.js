@@ -178,7 +178,7 @@ async function generateAnswer(userQuery, sources) {
     };
   }
 
-  const systemPrompt = `You are a helpful FAQ assistant. Answer the user's question based only on the provided context. If the context lacks sufficient information, say so. Be concise and direct.`;
+  const systemPrompt = `You are a helpful FAQ assistant. Answer the user's question based only on the provided context. If the context doesn't have enough information, respond with exactly: "I couldn't find an answer to that question in the FAQ system." Be concise and direct.`;
 
   const userPrompt = `Context:\n${context}\n\nQuestion: ${userQuery}\n\nAnswer based only on the context above.`;
 
