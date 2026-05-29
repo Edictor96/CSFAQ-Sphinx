@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-export default function SearchBar({ onSearch, onSelectSuggestion, loading }) {
+export default function SearchBar({ onSearch, onSelectSuggestion, loading, onQueryChange, onKeyDown }) {
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
@@ -16,6 +16,7 @@ export default function SearchBar({ onSearch, onSelectSuggestion, loading }) {
     if (e.key === 'Enter') {
       handleSubmit();
     }
+    onKeyDown?.(e);
   };
 
   return (
@@ -31,7 +32,7 @@ export default function SearchBar({ onSearch, onSelectSuggestion, loading }) {
           className="search-bar-input"
           placeholder="Ask anything..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { setQuery(e.target.value); onQueryChange?.(e.target.value); }}
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 200)}
           onKeyDown={handleKeyDown}

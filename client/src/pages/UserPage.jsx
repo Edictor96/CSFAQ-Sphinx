@@ -122,8 +122,7 @@ export default function UserPage() {
     handleSearch(suggestion.question);
   }, [handleSearch]);
 
-  const handleInputChange = (e) => {
-    const val = e.target.value;
+  const handleInputChange = (val) => {
     setQuery(val);
     setSelectedIndex(-1);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -220,12 +219,11 @@ export default function UserPage() {
 
         <div ref={searchContainerRef} className="faq-page-search-area" style={{ marginBottom: 24 }}>
           <SearchBar
-            value={query}
-            onChange={handleInputChange}
-            onKeyDown={handleInputKeyDown}
             onSearch={handleSearch}
             onSelectSuggestion={handleSelectSuggestion}
             loading={semanticLoading}
+            onQueryChange={handleInputChange}
+            onKeyDown={handleInputKeyDown}
           />
           {showSuggestions && (
             <SearchSuggestions
