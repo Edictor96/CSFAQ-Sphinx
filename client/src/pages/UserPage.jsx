@@ -5,7 +5,9 @@ import api from '../api/axios';
 import { searchFAQs, getSuggestions } from '../api/searchApi';
 import SearchBar from '../components/SearchBar';
 import SearchSuggestions from '../components/SearchSuggestions';
+import YakshaMini from '../components/YakshaMini';
 import '../styles/search.css';
+import '../styles/yaksha.css';
 
 const CATEGORIES = [
   'about-internship', 'certificate', 'code-of-conduct', 'coursework-vibe',
@@ -382,6 +384,7 @@ export default function UserPage() {
           )}
         </div>
       </div>
+      <YakshaMini />
     </div>
   );
 }
