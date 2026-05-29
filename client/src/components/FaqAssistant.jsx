@@ -34,6 +34,8 @@ export default function FaqAssistant() {
       const isGeneric = /no (relevant )?information|does not provide|lacks sufficient|couldn't find|don't have enough|couldn't find an answer/i.test(data.answer || '');
       if (hasSources && !isGeneric) {
         setMessages(prev => [...prev, { role: 'assistant', text: data.answer, sources: data.sources, confidence: data.confidence }]);
+      } else if (hasSources) {
+        setMessages(prev => [...prev, { role: 'assistant', text: data.sources[0].answer || data.sources[0].question, sources: data.sources, confidence: data.confidence }]);
       } else {
         setMessages(prev => [...prev, { role: 'assistant', text: "I couldn't find a confident answer in the FAQ system.", noAnswer: true, query: q }]);
       }

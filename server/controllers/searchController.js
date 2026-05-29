@@ -36,6 +36,7 @@ exports.search = async (req, res, next) => {
         question: s.question,
         category: s.category,
         score: s.score,
+        answer: s.document ? s.document.replace(s.question, '').trim() : '',
       })),
       similar: sources.map(s => ({
         faqId: s.faqId,

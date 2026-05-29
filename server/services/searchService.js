@@ -2,6 +2,7 @@ const { ChromaClient } = require('chromadb');
 const axios = require('axios');
 const Faq = require('../models/Faq');
 const { generateEmbedding } = require('./embeddingService');
+const { fetchOverview } = require('./internshipOverview');
 
 const CHROMA_HOST = process.env.CHROMA_HOST || 'localhost';
 const CHROMA_PORT = parseInt(process.env.CHROMA_PORT, 10) || 8000;
@@ -178,7 +179,7 @@ async function generateAnswer(userQuery, sources) {
     };
   }
 
-  const systemPrompt = `You are a helpful FAQ assistant. Answer the user's question based only on the provided context. If the context doesn't have enough information, respond with exactly: "I couldn't find an answer to that question in the FAQ system." Be concise and direct.`;
+  const systemPrompt = `You are a helpful FAQ assistant. Answer the user's question based only on the provided context. Be concise and direct. If the context has related information, use it to answer even if the wording is different.`;
 
   const userPrompt = `Context:\n${context}\n\nQuestion: ${userQuery}\n\nAnswer based only on the context above.`;
 
@@ -228,7 +229,58 @@ async function indexAllFaqs() {
     }
   }
 
+  try {
+    await indexOverview();
+    indexed++;
+  } catch {
+    // overview index failed, non-critical
+  }
+
   return indexed;
+}
+
+async function indexOverview() {
+  const existingIds = ['overview-about', 'overview-badges', 'overview-expectations', 'overview-project', 'overview-interview', 'overview-logistics', 'overview-cost'];
+  const col = await ensureCollection();
+  if (col) {
+    try { await col.delete({ ids: existingIds }); } catch { /* ok */ }
+  }
+
+  let data;
+  try {
+    data = await fetchOverview();
+  } catch {
+    return;
+  }
+
+  if (!data?.sections?.length) return;
+
+  const sections = [
+    { id: 'overview-about', title: 'About the internship programme', text: data.sections.find(s => s.type === 'lead')?.content || '' },
+    { id: 'overview-badges', title: 'Four-badge journey and certificate', text: data.sections.filter(s => s.type === 'text' || s.type === 'table').slice(0, 5).map(s => s.content || s.rows?.map?.(r => r.join(' ')).join(' ') || '').join(' ') },
+    { id: 'overview-expectations', title: 'What is expected of interns - attendance, participation, hours', text: data.sections.filter(s => s.type === 'text').slice(2, 5).map(s => s.content).join(' ') },
+    { id: 'overview-project', title: 'Projects, technology and domains in the internship', text: data.sections.filter(s => s.type === 'text').slice(5, 7).map(s => s.content).join(' ') },
+    { id: 'overview-interview', title: 'Interview process on samagama.in with Yaksha', text: data.sections.filter(s => s.type === 'text').slice(7, 9).map(s => s.content).join(' ') + (data.sections.find(s => s.type === 'note')?.content || '') },
+    { id: 'overview-logistics', title: 'Logistics - NOC, offer letter, result panel, tools', text: data.sections.find(s => s.type === 'list')?.items?.join(' ') || '' },
+    { id: 'overview-cost', title: 'Cost, stipend and funding of the internship', text: data.sections.filter(s => s.type === 'text').slice(9, 11).map(s => s.content).join(' ') },
+  ];
+
+  for (const sec of sections) {
+    if (!sec.text) continue;
+    const text = `${sec.title}. ${sec.text}`;
+    const embedding = await generateEmbedding(text);
+    const col2 = await ensureCollection();
+    if (col2) {
+      try {
+        await col2.upsert({
+          ids: [sec.id],
+          embeddings: [embedding],
+          metadatas: [{ faqId: sec.id, question: sec.title, category: 'programme-overview' }],
+          documents: [text],
+        });
+      } catch { /* skip individual */ }
+    }
+  }
 }
 
 module.exports = {
@@ -238,4 +290,5 @@ module.exports = {
   getSuggestions,
   generateAnswer,
   indexAllFaqs,
+  indexOverview,
 };
