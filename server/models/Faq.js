@@ -29,6 +29,10 @@ const faqSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isOutdated: {
+      type: Boolean,
+      default: false,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

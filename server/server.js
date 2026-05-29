@@ -15,6 +15,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const faqRoutes = require('./routes/faqRoutes');
 const queryRoutes = require('./routes/queryRoutes');
 const internshipRoutes = require('./routes/internshipRoutes');
+const searchRoutes = require('./routes/searchRoutes');
+const { indexAllFaqs } = require('./services/searchService');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -46,6 +48,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/queries', queryRoutes);
 app.use('/api/internship', internshipRoutes);
+app.use('/api/search', searchRoutes);
 
 app.all('*', (req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
@@ -94,6 +97,9 @@ const startServer = async () => {
   try {
     await connectDB();
     await seedFAQs();
+    indexAllFaqs().then(count => {
+      if (count > 0) console.log(`Search: Indexed ${count} FAQs for semantic search`);
+    }).catch(() => {});
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });

@@ -2,6 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { searchFAQs, getSuggestions } from '../api/searchApi';
+import SearchBar from '../components/SearchBar';
+import SearchSuggestions from '../components/SearchSuggestions';
+import SearchResults from '../components/SearchResults';
+import '../styles/search.css';
 
 const CATEGORIES = [
   'about-internship', 'certificate', 'code-of-conduct', 'coursework-vibe',
@@ -14,9 +19,12 @@ export default function UserPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showResults, setShowResults] = useState(false);
+  const [semanticResults, setSemanticResults] = useState(null);
+  const [semanticLoading, setSemanticLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [faqs, setFaqs] = useState([]);
   const [faqsLoading, setFaqsLoading] = useState(true);
   const [overview, setOverview] = useState(null);
@@ -25,12 +33,11 @@ export default function UserPage() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [highlightedFaq, setHighlightedFaq] = useState(null);
   const debounceRef = useRef(null);
-  const searchRef = useRef(null);
   const overviewRef = useRef(null);
   const faqRefs = useRef({});
+  const searchContainerRef = useRef(null);
 
   useEffect(() => {
-    searchRef.current?.focus();
     fetchAllFAQs();
     fetchOverview();
   }, []);
@@ -58,29 +65,83 @@ export default function UserPage() {
     }
   };
 
-  const searchFAQs = useCallback(async (q) => {
-    if (!q.trim()) {
-      setResults([]);
-      setShowResults(false);
+  const fetchSuggestions = useCallback(async (q) => {
+    if (!q || q.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
-    setLoading(true);
+    setSuggestionsLoading(true);
     try {
-      const { data } = await api.get(`/faqs/search?q=${encodeURIComponent(q)}`);
-      setResults(data.results || []);
-      setShowResults(true);
+      const data = await getSuggestions(q);
+      setSuggestions(data.results || []);
+      setShowSuggestions(true);
     } catch {
-      setResults([]);
+      setSuggestions([]);
     } finally {
-      setLoading(false);
+      setSuggestionsLoading(false);
     }
   }, []);
+
+  const handleSearch = useCallback(async (q) => {
+    if (!q || q.trim().length < 3) return;
+    setQuery(q);
+    setShowSuggestions(false);
+    setSemanticLoading(true);
+    setSemanticResults(null);
+    try {
+      const data = await searchFAQs(q);
+      setSemanticResults(data);
+    } catch {
+      setSemanticResults(null);
+    } finally {
+      setSemanticLoading(false);
+    }
+  }, []);
+
+  const handleSelectSuggestion = useCallback((suggestion) => {
+    if (!suggestion) {
+      setQuery('');
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    setQuery(suggestion.question);
+    setShowSuggestions(false);
+    handleSearch(suggestion.question);
+  }, [handleSearch]);
 
   const handleInputChange = (e) => {
     const val = e.target.value;
     setQuery(val);
+    setSelectedIndex(-1);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => searchFAQs(val), 250);
+    debounceRef.current = setTimeout(() => fetchSuggestions(val), 300);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === 'Enter') {
+        handleSearch(query);
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.min(prev + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.max(prev - 1, -1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+        handleSelectSuggestion(suggestions[selectedIndex]);
+      } else {
+        handleSearch(query);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -123,77 +184,27 @@ export default function UserPage() {
           <p style={{ color: 'var(--text-secondary)', fontSize: 15 }}>Search our knowledge base for instant answers</p>
         </div>
 
-        <div style={{ position: 'relative', marginBottom: 32 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)', padding: '4px 16px'
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder="Search FAQs..."
-              value={query}
-              onChange={handleInputChange}
-              style={{
-                flex: 1, border: 'none', outline: 'none', background: 'transparent',
-                padding: '12px 0', fontSize: 15, color: 'var(--text-primary)',
-                fontFamily: 'inherit'
-              }}
+        <div ref={searchContainerRef} className="faq-page-search-area" style={{ marginBottom: 24 }}>
+          <SearchBar
+            onSearch={handleSearch}
+            onSelectSuggestion={handleSelectSuggestion}
+            loading={semanticLoading}
+          />
+          {showSuggestions && (
+            <SearchSuggestions
+              suggestions={suggestions}
+              loading={suggestionsLoading}
+              onSelect={handleSelectSuggestion}
+              selectedIndex={selectedIndex}
+              query={query}
             />
-            {loading && (
-              <div style={{ width: 18, height: 18, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
-            )}
-          </div>
-
-          {showResults && results.length > 0 && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-              background: 'var(--bg-card)', backdropFilter: 'blur(16px)',
-              border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-              marginTop: 8, maxHeight: 360, overflowY: 'auto', boxShadow: 'var(--shadow-lg)'
-            }}>
-              {results.map((faq) => (
-                <div key={faq._id} style={{ padding: '14px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
-                  onClick={() => {
-                    setQuery('');
-                    setShowResults(false);
-                    setResults([]);
-                    setHighlightedFaq(faq._id);
-                    setActiveCategory(faq.category);
-                    setTimeout(() => {
-                      const el = faqRefs.current[faq._id];
-                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 150);
-                  }}
-                  onMouseOver={e => e.currentTarget.style.background = 'var(--accent-light)'}
-                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{faq.question}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 12 }}>
-                    <span>{faq.category}</span>
-                    <span>{faq.views} views</span>
-                  </div>
-                </div>
-              ))}
-            </div>
           )}
-
-          {showResults && query && !loading && results.length === 0 && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-              background: 'var(--bg-card)', backdropFilter: 'blur(16px)',
-              border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-              marginTop: 8, padding: 24, textAlign: 'center', color: 'var(--text-muted)',
-              fontSize: 14, boxShadow: 'var(--shadow-lg)'
-            }}>
-              No FAQs match your search
-            </div>
-          )}
+          <SearchResults
+            results={semanticResults}
+            loading={semanticLoading}
+            onSelectQuestion={(q) => handleSearch(q)}
+            query={query}
+          />
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
