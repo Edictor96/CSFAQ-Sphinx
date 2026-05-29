@@ -14,6 +14,7 @@ const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const faqRoutes = require('./routes/faqRoutes');
 const queryRoutes = require('./routes/queryRoutes');
+const internshipRoutes = require('./routes/internshipRoutes');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/queries', queryRoutes);
+app.use('/api/internship', internshipRoutes);
 
 app.all('*', (req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });

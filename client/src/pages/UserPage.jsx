@@ -13,12 +13,16 @@ export default function UserPage() {
   const [faqs, setFaqs] = useState([]);
   const [faqsLoading, setFaqsLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
+  const [overview, setOverview] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [overviewOpen, setOverviewOpen] = useState(false);
   const debounceRef = useRef(null);
   const searchRef = useRef(null);
 
   useEffect(() => {
     searchRef.current?.focus();
     fetchAllFAQs();
+    fetchOverview();
   }, []);
 
   const fetchAllFAQs = async () => {
@@ -36,6 +40,17 @@ export default function UserPage() {
       setFaqs([]);
     } finally {
       setFaqsLoading(false);
+    }
+  };
+
+  const fetchOverview = async () => {
+    try {
+      const { data } = await api.get('/internship/overview');
+      if (data.success) setOverview(data.sections);
+    } catch {
+      // ignore
+    } finally {
+      setOverviewLoading(false);
     }
   };
 
@@ -219,6 +234,97 @@ export default function UserPage() {
             ))}
           </div>
         )}
+
+        <div style={{
+          background: 'var(--bg-card)', backdropFilter: 'blur(16px)',
+          border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+          marginTop: 24, overflow: 'hidden'
+        }}>
+          <div
+            onClick={() => setOverviewOpen(o => !o)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '16px 20px', cursor: 'pointer',
+              fontWeight: 600, fontSize: 15
+            }}
+          >
+            <span>Programme Overview</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              style={{ transform: overviewOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms ease' }}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          {overviewOpen && (
+            <div style={{ borderTop: '1px solid var(--border)', padding: '20px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+              {overviewLoading ? (
+                <div style={{ color: 'var(--text-muted)' }}>Loading…</div>
+              ) : overview ? (
+                overview.map((section, i) => {
+                  switch (section.type) {
+                    case 'lead':
+                      return <p key={i} style={{ fontSize: 15, marginBottom: 16 }}>{section.content}</p>;
+                    case 'heading':
+                      return <h3 key={i} style={{ fontSize: 16, fontWeight: 600, margin: '20px 0 10px', color: 'var(--text-primary)' }}>{section.content}</h3>;
+                    case 'text':
+                      return <p key={i} style={{ marginBottom: 12 }} dangerouslySetInnerHTML={{ __html: section.html }} />;
+                    case 'note':
+                      return <div key={i} style={{ background: 'var(--accent-light)', padding: 12, borderRadius: 'var(--radius-sm)', marginBottom: 12, borderLeft: '3px solid var(--accent)' }}>{section.content}</div>;
+                    case 'tracks':
+                      return section.tracks.map((t, ti) => (
+                        <div key={`${i}-${ti}`} style={{ marginBottom: 16 }}>
+                          <strong style={{ color: 'var(--text-primary)' }}>{t.title}</strong>
+                          <p style={{ marginTop: 4 }}>{t.content}</p>
+                        </div>
+                      ));
+                    case 'table':
+                      return (
+                        <div key={i} style={{ overflowX: 'auto', marginBottom: 16 }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                              <tr style={{ background: 'var(--bg-secondary)' }}>
+                                {['Badge', 'Phase', 'Description', 'Required?'].map(h => (
+                                  <th key={h} style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600 }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {section.rows.map((row, ri) => (
+                                <tr key={ri}>
+                                  {row.map((cell, ci) => (
+                                    <td key={ci} style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>{cell}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    case 'list':
+                      return (
+                        <ul key={i} style={{ paddingLeft: 20, marginBottom: 12 }}>
+                          {section.items.map((item, li) => (
+                            <li key={li} style={{ marginBottom: 4 }}>{item}</li>
+                          ))}
+                        </ul>
+                      );
+                    case 'ordered-list':
+                      return (
+                        <ol key={i} style={{ paddingLeft: 20, marginBottom: 12 }}>
+                          {section.items.map((item, li) => (
+                            <li key={li} style={{ marginBottom: 4 }}>{item}</li>
+                          ))}
+                        </ol>
+                      );
+                    default:
+                      return null;
+                  }
+                })
+              ) : (
+                <p style={{ color: 'var(--text-muted)' }}>Failed to load overview</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
