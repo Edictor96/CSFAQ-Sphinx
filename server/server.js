@@ -58,7 +58,31 @@ const seedFAQs = async () => {
   try {
     const count = await Faq.countDocuments();
     if (count > 0) {
-      console.log(`FAQs: ${count} already exist`);
+      const internshipCount = await Faq.countDocuments({ category: 'internship' });
+      if (internshipCount === 0) {
+        const faqDocs = await Faq.insertMany(INTERNSHIP_FAQS);
+        console.log(`FAQs: Added ${faqDocs.length} internship FAQs to existing ${count} FAQs`);
+        const embeddings = [];
+        for (const faq of faqDocs) {
+          try {
+            const embedding = await ragService.generateEmbedding(faq.question + ' ' + faq.answer);
+            if (embedding) {
+              embeddings.push({
+                updateOne: {
+                  filter: { _id: faq._id },
+                  update: { $set: { embedding } },
+                },
+              });
+            }
+          } catch { /* skip */ }
+        }
+        if (embeddings.length > 0) {
+          await Faq.bulkWrite(embeddings);
+          console.log(`FAQs: Generated ${embeddings.length} internship embeddings`);
+        }
+      } else {
+        console.log(`FAQs: ${count} already exist (${internshipCount} internship)`);
+      }
       return;
     }
 
