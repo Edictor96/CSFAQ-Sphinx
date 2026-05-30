@@ -1,6 +1,8 @@
 const { Router } = require('express');
 const rateLimit = require('express-rate-limit');
 const searchController = require('../controllers/searchController');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 const router = Router();
 
@@ -20,7 +22,23 @@ const suggestionLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post('/', searchLimiter, searchController.search);
+// Bypasses authenticateUser entirely — manually decodes token so errors never block the request
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      const user = await User.findById(decoded.userId);
+      if (user) req.user = user;
+    }
+  } catch (_) {
+    // invalid/expired token — just skip, don't block
+  }
+  next();
+};
+
+router.post('/', searchLimiter, optionalAuth, searchController.search);
 router.get('/suggestions', suggestionLimiter, searchController.suggestions);
 
 module.exports = router;

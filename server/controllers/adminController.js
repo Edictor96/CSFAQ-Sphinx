@@ -6,7 +6,7 @@ exports.getUsers = async (req, res, next) => {
     const { page = 1, limit = 20, role, search } = req.query;
     const query = {};
 
-    if (role && ['super_admin', 'admin', 'intern'].includes(role)) {
+    if (role && ['admin', 'intern'].includes(role)) {
       query.role = role;
     }
 
@@ -44,7 +44,8 @@ exports.getUsers = async (req, res, next) => {
 
 exports.getUserById = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id).select('-refreshToken -passwordResetToken -passwordResetExpires');
+    const user = await User.findById(req.params.id)
+      .select('-refreshToken -passwordResetToken -passwordResetExpires');
     if (!user) {
       return next(new AppError('User not found', 404));
     }
@@ -57,8 +58,8 @@ exports.getUserById = async (req, res, next) => {
 exports.updateUserRole = async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!role || !['super_admin', 'admin', 'intern'].includes(role)) {
-      return next(new AppError('Valid role is required (super_admin, admin, intern)', 400));
+    if (!role || !['admin', 'intern'].includes(role)) {
+      return next(new AppError('Valid role is required (admin, intern)', 400));
     }
 
     const user = await User.findById(req.params.id);
@@ -66,12 +67,8 @@ exports.updateUserRole = async (req, res, next) => {
       return next(new AppError('User not found', 404));
     }
 
-    if (user.role === 'super_admin' && req.user.role !== 'super_admin') {
-      return next(new AppError('Only super admins can modify super admin accounts', 403));
-    }
-
-    if (role === 'super_admin' && req.user.role !== 'super_admin') {
-      return next(new AppError('Only super admins can assign super admin role', 403));
+    if (user._id.equals(req.user._id)) {
+      return next(new AppError('Cannot change your own role', 400));
     }
 
     user.role = role;
@@ -99,8 +96,12 @@ exports.promoteToAdmin = async (req, res, next) => {
       return next(new AppError('User not found', 404));
     }
 
-    if (user.role !== 'intern') {
-      return next(new AppError('Only interns can be promoted to admin', 400));
+    if (user.role === 'admin') {
+      return next(new AppError('User is already an admin', 400));
+    }
+
+    if (user._id.equals(req.user._id)) {
+      return next(new AppError('Cannot promote yourself', 400));
     }
 
     user.role = 'admin';
@@ -108,7 +109,7 @@ exports.promoteToAdmin = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Intern promoted to admin successfully',
+      message: 'User promoted to admin successfully',
       user: {
         id: user._id,
         name: user.name,
@@ -128,17 +129,31 @@ exports.deleteUser = async (req, res, next) => {
       return next(new AppError('User not found', 404));
     }
 
-    if (user.role === 'super_admin') {
-      return next(new AppError('Cannot delete a super admin account', 403));
-    }
-
     if (user._id.equals(req.user._id)) {
       return next(new AppError('Cannot delete your own account', 400));
     }
 
     await User.findByIdAndDelete(req.params.id);
-
     res.json({ success: true, message: 'User deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getStats = async (req, res, next) => {
+  try {
+    const Question = require('../models/Question');
+    const Answer = require('../models/Answer');
+    const Faq = require('../models/Faq');
+
+    const [totalUsers, totalQuestions, totalAnswers, totalFaqs] = await Promise.all([
+      User.countDocuments(),
+      Question.countDocuments(),
+      Answer.countDocuments(),
+      Faq.countDocuments(),
+    ]);
+
+    res.json({ success: true, totalUsers, totalQuestions, totalAnswers, totalFaqs });
   } catch (err) {
     next(err);
   }
