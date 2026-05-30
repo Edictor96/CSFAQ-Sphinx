@@ -48,26 +48,31 @@ exports.search = async (req, res, next) => {
     };
 
     searchCache.set(trimmed, { data, timestamp: Date.now() });
+
     // Auto-save unresolved queries
-if (req.user && (sources.length === 0 || confidence < 0.4)) {
-  try {
-    const Query = require('../models/Query');
-    const existing = await Query.findOne({
-      question: { $regex: trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' },
-      status: 'open'
-    });
-    if (!existing) {
-      await Query.create({
-        user: req.user._id,
-        question: trimmed,
-        category: 'general',
-        status: 'open'
-      });
+    if (req.user && (sources.length === 0 || confidence < 0.4)) {
+      try {
+        console.log('Attempting to save query for user:', req.user._id, 'Query:', trimmed);
+        const Query = require('../models/Query');
+        const existing = await Query.findOne({
+          question: { $regex: trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' },
+          status: 'open'
+        });
+        if (!existing) {
+          await Query.create({
+            user: req.user._id,
+            question: trimmed,
+            category: 'general',
+            status: 'open'
+          });
+          console.log('Saved unresolved query:', trimmed);
+        } else {
+          console.log('Duplicate found, skipping');
+        }
+      } catch (e) {
+        console.log('Query save error:', e.message);
+      }
     }
-  } catch (e) {
-  console.error('Query save error:', e.message, e.stack);
-}
-}
 
     res.json({ success: true, ...data });
   } catch (err) {
