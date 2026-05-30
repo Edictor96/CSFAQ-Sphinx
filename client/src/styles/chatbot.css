@@ -519,3 +519,15 @@
   .neural-faq-sidebar { grid-template-columns: 1fr; }
   .chat-message-content { max-width: 90%; }
 }
+
+.chat-message-text {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
+}
+
+.chat-message-content {
+  min-width: 0;
+  max-width: 100%;
+}

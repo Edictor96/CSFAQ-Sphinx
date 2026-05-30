@@ -10,4 +10,8 @@ router.get('/me', authenticateUser, queryController.getMyQueries);
 router.get('/', authenticateUser, authorizeRoles('admin', 'super_admin'), queryController.getAllQueries);
 router.put('/:id', authenticateUser, authorizeRoles('admin', 'super_admin'), queryController.respondToQuery);
 
+router.get('/all', authenticateUser, authorizeRoles('admin', 'super_admin'), queryController.getAllQueries);
+router.patch('/:id/respond', authenticateUser, authorizeRoles('admin', 'super_admin'), queryController.respondToQuery);
+router.delete('/:id', authenticateUser, queryController.deleteQuery);
+
 module.exports = router;
