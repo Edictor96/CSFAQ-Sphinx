@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
+import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthLayout from './components/AuthLayout';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -21,7 +23,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Toaster
+        <SocketProvider>
+          <NotificationProvider>
+            <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,
@@ -61,6 +65,8 @@ export default function App() {
           <Route path="/" element={<Navigate to="/user" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+          </NotificationProvider>
+        </SocketProvider>
       </AuthProvider>
     </BrowserRouter>
   );

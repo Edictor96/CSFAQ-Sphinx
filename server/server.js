@@ -1,4 +1,5 @@
 ﻿require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+const http = require('http');
 const express = require('express');
 const mongoose = require('mongoose');
 const helmet = require('helmet');
@@ -18,8 +19,10 @@ const internshipRoutes = require('./routes/internshipRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const answerRoutes = require('./routes/answerRoutes');
 const questionRoutes = require('./routes/questionRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const { indexAllFaqs } = require('./services/searchService');
 const { errorHandler } = require('./middleware/errorHandler');
+const { setupSocket } = require('./services/socketService');
 
 const app = express();
 
@@ -53,6 +56,7 @@ app.use('/api/internship', internshipRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/answers', answerRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.all('*', (req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
@@ -97,6 +101,9 @@ const seedFAQs = async () => {
   }
 };
 
+const server = http.createServer(app);
+setupSocket(server);
+
 const startServer = async () => {
   try {
     await connectDB();
@@ -104,7 +111,7 @@ const startServer = async () => {
     indexAllFaqs().then(count => {
       if (count > 0) console.log(`Search: Indexed ${count} FAQs for semantic search`);
     }).catch(() => {});
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
 // Apply pending points every hour

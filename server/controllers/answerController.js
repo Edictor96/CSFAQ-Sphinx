@@ -1,6 +1,8 @@
 const Answer = require('../models/Answer');
 const Question = require('../models/Question');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
+const { notifyUser } = require('../services/socketService');
 
 // Create a new answer
 const createAnswer = async (req, res) => {
@@ -18,6 +20,19 @@ const createAnswer = async (req, res) => {
     });
 
     await Question.findByIdAndUpdate(questionId, { status: 'answered' });
+
+    const question = await Question.findById(questionId).select('author title');
+    if (question && question.author.toString() !== req.user._id.toString()) {
+      const notif = await Notification.create({
+        recipient: question.author,
+        type: 'question_answered',
+        title: 'Your Question Got an Answer',
+        message: `"${question.title.slice(0, 60)}" received a new answer`,
+        link: `/questions/${questionId}`,
+        relatedId: questionId,
+      });
+      notifyUser(question.author, notif);
+    }
 
     res.status(201).json(answer);
   } catch (error) {

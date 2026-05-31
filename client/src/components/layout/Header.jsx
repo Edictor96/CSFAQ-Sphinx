@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
+import NotificationBell from '../NotificationBell';
 
 const Header = () => {
   const { user } = useAuth();
@@ -10,6 +11,7 @@ const Header = () => {
       </div>
       <div className="flex-row">
         {user?.role === 'admin' && <span className="badge badge-answered" style={{ marginRight: '1rem' }}>ADMIN MODE</span>}
+        <NotificationBell />
       </div>
     </header>
   );

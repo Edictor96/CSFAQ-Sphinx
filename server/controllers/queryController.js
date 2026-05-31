@@ -1,4 +1,7 @@
 const Query = require('../models/Query');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
+const { notifyUser, notifyAdmins } = require('../services/socketService');
 const { AppError } = require('../middleware/errorHandler');
 
 exports.createQuery = async (req, res, next) => {
@@ -14,6 +17,19 @@ exports.createQuery = async (req, res, next) => {
       category: (category || 'general').toLowerCase(),
       description: description || '',
     });
+
+    const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } }).select('_id');
+    for (const admin of admins) {
+      const notif = await Notification.create({
+        recipient: admin._id,
+        type: 'new_query',
+        title: 'New Query Submitted',
+        message: `${req.user.name || 'A user'} submitted a new query: "${query.question.slice(0, 80)}"`,
+        link: '/admin?tab=queries',
+        relatedId: query._id,
+      });
+      notifyUser(admin._id, notif);
+    }
 
     res.status(201).json({ success: true, query });
   } catch (err) {
@@ -78,6 +94,18 @@ exports.respondToQuery = async (req, res, next) => {
       if (status === 'resolved') query.resolvedAt = new Date();
     }
     await query.save();
+
+    const notif = await Notification.create({
+      recipient: query.user,
+      type: status === 'resolved' ? 'query_response' : 'query_status',
+      title: 'Query Update',
+      message: response
+        ? `Your query has been responded to: "${response.slice(0, 80)}"`
+        : `Your query status changed to "${status}"`,
+      link: '/query',
+      relatedId: query._id,
+    });
+    notifyUser(query.user, notif);
 
     res.json({ success: true, query });
   } catch (err) {

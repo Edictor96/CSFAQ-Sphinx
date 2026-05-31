@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
+const { notifyUser } = require('../services/socketService');
 const { AppError } = require('../middleware/errorHandler');
 
 const googleClient = new OAuth2Client(
@@ -59,6 +61,18 @@ exports.register = async (req, res, next) => {
       role: 'intern',
       isVerified: true,
     });
+
+    const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } }).select('_id');
+    for (const admin of admins) {
+      const notif = await Notification.create({
+        recipient: admin._id,
+        type: 'new_user',
+        title: 'New User Registered',
+        message: `${name.trim()} (${email.toLowerCase().trim()}) registered as an intern`,
+        link: '/admin?tab=users',
+      });
+      notifyUser(admin._id, notif);
+    }
 
     sendTokens(user, 201, res);
   } catch (err) {

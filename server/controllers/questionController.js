@@ -1,4 +1,7 @@
 const Question = require('../models/Question');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
+const { notifyUser } = require('../services/socketService');
 
 // Create a new question
 const createQuestion = async (req, res) => {
@@ -14,6 +17,20 @@ const createQuestion = async (req, res) => {
       description,
       author: req.user._id
     });
+
+    const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } }).select('_id');
+    for (const admin of admins) {
+      const notif = await Notification.create({
+        recipient: admin._id,
+        type: 'new_question',
+        title: 'New Question Asked',
+        message: `${req.user.name || 'Someone'} asked: "${title.slice(0, 80)}"`,
+        link: '/admin?tab=questions',
+        relatedId: question._id,
+      });
+      notifyUser(admin._id, notif);
+    }
+
     res.status(201).json(question);
   } catch (error) {
     res.status(500).json({ message: error.message });

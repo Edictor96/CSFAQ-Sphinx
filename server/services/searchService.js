@@ -4,6 +4,12 @@ const Faq = require('../models/Faq');
 const { generateEmbedding } = require('./embeddingService');
 const { fetchOverview } = require('./internshipOverview');
 
+class NoOpEmbeddingFunction {
+  async generate(texts) {
+    return texts.map(() => []);
+  }
+}
+
 const CHROMA_HOST = process.env.CHROMA_HOST || 'localhost';
 const CHROMA_PORT = parseInt(process.env.CHROMA_PORT, 10) || 8000;
 const CHROMA_COLLECTION = process.env.CHROMA_COLLECTION || 'faq_embeddings';
@@ -33,7 +39,7 @@ async function ensureCollection() {
   initChroma();
   if (!chromaClient) return null;
   try {
-    collection = await chromaClient.getOrCreateCollection({ name: CHROMA_COLLECTION });
+    collection = await chromaClient.getOrCreateCollection({ name: CHROMA_COLLECTION, embeddingFunction: new NoOpEmbeddingFunction() });
     chromaAvailable = true;
     return collection;
   } catch {
