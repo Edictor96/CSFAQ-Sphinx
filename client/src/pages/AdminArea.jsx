@@ -232,8 +232,8 @@ const AdminArea = () => {
   const handlePromoteQueryToFaq = async (q) => {
     try {
       await adminService.createFaq({ question: q.question, answer: q.adminResponse || q.question, category: 'general' });
-      await api.patch(`/queries/${q._id}/respond`, { status: 'resolved', response: q.adminResponse || q.question });
-      alert('Promoted to FAQ and marked resolved!');
+      await api.delete(`/queries/${q._id}`);
+      alert('Promoted to FAQ and deleted from queries!');
       fetchData();
     } catch { alert('Failed to promote query to FAQ'); }
   };
