@@ -117,7 +117,7 @@ exports.deleteQuery = async (req, res, next) => {
   try {
     const query = await Query.findById(req.params.id);
     if (!query) return next(new AppError('Query not found', 404));
-    if (query.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    if (query.user.toString() !== req.user._id.toString() && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return next(new AppError('Not authorized', 403));
     }
     await Query.findByIdAndDelete(req.params.id);

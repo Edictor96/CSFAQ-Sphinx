@@ -28,11 +28,11 @@ router.post('/questions/:id/promote-faq', adminController.promoteQuestionToFaq);
 // Pending answers moderation
 router.get('/answers/pending', adminController.getPendingAnswers);
 
-// FAQ CRUD (super_admin only)
-router.get('/faqs', isSuperAdmin, adminController.getAllFaqs);
-router.post('/faqs', isSuperAdmin, adminController.createFaq);
-router.patch('/faqs/:id', isSuperAdmin, adminController.updateFaq);
-router.delete('/faqs/:id', isSuperAdmin, adminController.deleteFaq);
+// FAQ CRUD (admin / super_admin)
+router.get('/faqs', isAdmin, adminController.getAllFaqs);
+router.post('/faqs', isAdmin, adminController.createFaq);
+router.patch('/faqs/:id', isAdmin, adminController.updateFaq);
+router.delete('/faqs/:id', isAdmin, adminController.deleteFaq);
 
 // Audit log (super_admin only)
 router.get('/audit-logs', isSuperAdmin, adminController.getAuditLogs);

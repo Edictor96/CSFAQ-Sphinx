@@ -61,7 +61,8 @@ export default function NotificationBell() {
       {/* Dropdown */}
       {open && (
         <div style={{
-          position: 'absolute', right: 0, top: 'calc(100% + 8px)', zIndex: 1000,
+          position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+          zIndex: 2147483647,
           width: 360, maxHeight: 480, overflowY: 'auto',
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
