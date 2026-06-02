@@ -77,6 +77,7 @@ const AdminArea = () => {
   const [selectedQuestions, setSelectedQuestions] = useState(new Set());
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [selectedQueries, setSelectedQueries] = useState(new Set());
+  const [respondModal, setRespondModal] = useState({ open: false, query: null, response: '' });
 
   useEffect(() => { fetchData(); }, []);
 
@@ -518,7 +519,7 @@ const AdminArea = () => {
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   <button onClick={() => handlePromoteQueryToFaq(q)} style={{ padding: '7px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--success)', background: 'rgba(16,185,129,0.08)', color: 'var(--success)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>⬆ Promote to FAQ</button>
                   {q.status !== 'resolved' && (
-                    <button onClick={() => { const r = prompt('Enter your response:'); if (r) handleResolveQuery(q._id, r); }} style={{ padding: '7px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent)', background: 'rgba(99,102,241,0.08)', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✓ Respond & Resolve</button>
+                    <button onClick={() => setRespondModal({ open: true, query: q, response: '' })} style={{ padding: '7px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent)', background: 'rgba(99,102,241,0.08)', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✓ Respond & Resolve</button>
                   )}
                   <button onClick={() => handleDeleteQuery(q._id)} style={{ padding: '7px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--error)', background: 'rgba(220,38,38,0.08)', color: 'var(--error)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>🗑 Delete</button>
                 </div>
@@ -660,6 +661,61 @@ const AdminArea = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Respond Modal */}
+      {respondModal.open && (
+        <div onClick={() => setRespondModal({ open: false, query: null, response: '' })} style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'var(--bg-card)', borderRadius: 'var(--radius-md)',
+            padding: 28, width: 500, maxWidth: '90vw',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+            display: 'flex', flexDirection: 'column', gap: 16,
+          }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>Respond & Resolve</h3>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Query:</strong> {respondModal.query.question}
+            </div>
+            <textarea
+              autoFocus
+              placeholder="Type your response..."
+              value={respondModal.response}
+              onChange={e => setRespondModal(m => ({ ...m, response: e.target.value }))}
+              style={{
+                width: '100%', minHeight: 120, resize: 'vertical', boxSizing: 'border-box',
+                padding: '12px 14px', borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)', fontSize: 14, fontFamily: 'inherit',
+                outline: 'none',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setRespondModal({ open: false, query: null, response: '' })} style={{
+                padding: '9px 20px', borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)', background: 'transparent',
+                color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>Cancel</button>
+              <button
+                disabled={!respondModal.response.trim()}
+                onClick={() => {
+                  handleResolveQuery(respondModal.query._id, respondModal.response);
+                  setRespondModal({ open: false, query: null, response: '' });
+                }}
+                style={{
+                  padding: '9px 20px', borderRadius: 'var(--radius-sm)', border: 'none',
+                  background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600,
+                  cursor: respondModal.response.trim() ? 'pointer' : 'not-allowed',
+                  opacity: respondModal.response.trim() ? 1 : 0.5, fontFamily: 'inherit',
+                }}
+              >Resolve</button>
+            </div>
+          </div>
         </div>
       )}
 
