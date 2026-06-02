@@ -78,6 +78,7 @@ const AdminArea = () => {
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [selectedQueries, setSelectedQueries] = useState(new Set());
   const [respondModal, setRespondModal] = useState({ open: false, query: null, response: '' });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -233,9 +234,9 @@ const AdminArea = () => {
     try {
       await adminService.createFaq({ question: q.question, answer: q.adminResponse || q.question, category: 'general' });
       await api.delete(`/queries/${q._id}`);
-      alert('Promoted to FAQ and deleted from queries!');
+      setToast({ type: 'success', message: 'Promoted to FAQ and deleted from queries!' });
       fetchData();
-    } catch { alert('Failed to promote query to FAQ'); }
+    } catch { setToast({ type: 'error', message: 'Failed to promote query to FAQ' }); }
   };
 
   const handleDeleteQuery = async (id) => {
@@ -657,6 +658,42 @@ const AdminArea = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Toast Modal */}
+      {toast && (
+        <div onClick={() => setToast(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'var(--bg-card)', borderRadius: 'var(--radius-md)',
+            padding: 32, width: 420, maxWidth: '90vw',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+            textAlign: 'center',
+          }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: '50%',
+              background: toast.type === 'success' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+            }}>
+              {toast.type === 'success' ? '✅' : '❌'}
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+              {toast.type === 'success' ? 'Success' : 'Error'}
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              {toast.message}
+            </div>
+            <button onClick={() => setToast(null)} style={{
+              marginTop: 8, padding: '9px 28px', borderRadius: 'var(--radius-sm)',
+              border: 'none', background: 'var(--accent)', color: '#fff',
+              fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            }}>OK</button>
+          </div>
         </div>
       )}
 
