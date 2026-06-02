@@ -47,9 +47,14 @@ const getAnswersByQuestionId = async (req, res) => {
   try {
     const isAdmin = ['admin', 'super_admin'].includes(req.user.role);
     const filter = { question: req.params.questionId };
-    if (!isAdmin) filter.status = 'approved';
+    if (!isAdmin) {
+      filter.$or = [
+        { status: 'approved' },
+        { author: req.user._id, status: 'pending' },
+      ];
+    }
     const answers = await Answer.find(filter)
-      .populate('author', 'name email points')
+      .populate('author', 'name email points role')
       .sort({ createdAt: 1 });
     res.json(answers);
   } catch (error) {
